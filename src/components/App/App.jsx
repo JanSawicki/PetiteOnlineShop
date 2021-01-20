@@ -3,15 +3,15 @@ import axios from "axios";
 import "./App.css";
 import List from "@material-ui/core/List";
 import ListItem from "@material-ui/core/ListItem";
-import ListItemIcon from "@material-ui/core/ListItemIcon";
-import ListItemSecondaryAction from "@material-ui/core/ListItemSecondaryAction";
 import ListItemText from "@material-ui/core/ListItemText";
 import IconButton from "@material-ui/core/IconButton";
-import ShoppingCart from "@material-ui/icons/ShoppingCart";
-import ShoppingCartOutlined from "@material-ui/icons/ShoppingCartOutlined";
+import RemoveShoppingCartOutlined from "@material-ui/icons/RemoveShoppingCartOutlined";
+import AddShoppingCartOutlined from "@material-ui/icons/AddShoppingCartOutlined";
 import { Cart } from "../Cart/Cart";
 import { formatCurrency } from "../../utils";
-import { Tooltip } from "@material-ui/core";
+import { Chip, Tooltip } from "@material-ui/core";
+import { Store } from "@material-ui/icons";
+import { green, red } from "@material-ui/core/colors";
 
 const App = () => {
   const [products, setProducts] = useState([]);
@@ -42,20 +42,50 @@ const App = () => {
       return product.pid !== clickedProduct.pid;
     });
 
-    console.log(_productsInCart);
-
     setProductsInCart(_productsInCart);
   };
 
-  let changeProductCountInCart = (product, changeByNumber) => {
+  let changeProductCountInCart = async (
+    product,
+    changeByNumber,
+    triggerErrorQuantity
+  ) => {
     let _productsInCart = [...productsInCart];
     _productsInCart.forEach((_product) => {
       if (_product.pid === product.pid) {
         _product.count += changeByNumber;
+
+        if (_product.count == 0) {
+          _product.count = 1;
+        }
+
+        axios
+          .post(
+            "/api/product/check/",
+            JSON.stringify(
+              {
+                pid: _product.pid,
+                quantity: _product.count,
+              },
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              }
+            )
+          )
+          .then((response) => {})
+          .catch((error) => {
+            if (error.response.data.errorType === "INCORRECT_QUANTITY") {
+              triggerErrorQuantity();
+              _product.count -= changeByNumber;
+            }
+          })
+          .finally(() => {
+            setProductsInCart(_productsInCart);
+          });
       }
     });
-
-    setProductsInCart(_productsInCart);
   };
 
   useEffect(async () => {
@@ -68,7 +98,7 @@ const App = () => {
 
   return (
     <div className="container">
-      <h3>Lista produktów</h3>
+      <Chip label="Lista produktów" icon={<Store />}/>
       <List>
         {products.map((product) => (
           <ListItem>
@@ -77,16 +107,16 @@ const App = () => {
               secondary={formatCurrency(product.price)}
             />
             {!isProductInCart(product) && (
-              <Tooltip title="Add to cart">
+              <Tooltip title="Dodaj do koszyka">
                 <IconButton edge="end" onClick={() => addToCart(product)}>
-                  <ShoppingCartOutlined />
+                  <AddShoppingCartOutlined style={{ color: green[500] }} />
                 </IconButton>
               </Tooltip>
             )}
             {isProductInCart(product) && (
-              <Tooltip title="Remove from cart">
+              <Tooltip title="Usuń z koszyka">
                 <IconButton edge="end" onClick={() => removeFromCart(product)}>
-                  <ShoppingCart />
+                  <RemoveShoppingCartOutlined style={{ color: red[500] }}/>
                 </IconButton>
               </Tooltip>
             )}

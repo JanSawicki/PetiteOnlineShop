@@ -1,5 +1,3 @@
-const someCommonValues = ['common', 'values'];
-
 export const formatCurrency = (number) => {
     return new Intl.NumberFormat('pl-PL', {
         style: 'currency',
@@ -7,6 +5,11 @@ export const formatCurrency = (number) => {
     }).format(number)
 }
 
-export const addPrices = (price1, price2) => {
-    return parseFloat(price1) + parseFloat(price2)
+// https://gist.github.com/nmsdvid/8807205#gistcomment-3325286
+export const debounce = (callback, wait = 250) => {
+    let timer;
+    return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => callback(...args), wait);
+    };
 };

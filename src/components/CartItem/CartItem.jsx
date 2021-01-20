@@ -1,87 +1,109 @@
-import React, { useEffect, useState } from "react";
-import List from "@material-ui/core/List";
+import React, { useState } from "react";
 import ListItem from "@material-ui/core/ListItem";
-import ListItemIcon from "@material-ui/core/ListItemIcon";
-import ListItemSecondaryAction from "@material-ui/core/ListItemSecondaryAction";
 import ListItemText from "@material-ui/core/ListItemText";
-import Badge from "@material-ui/core/Badge";
 import IconButton from "@material-ui/core/IconButton";
 import DeleteOutlined from "@material-ui/icons/DeleteOutlined";
 import RemoveOutlined from "@material-ui/icons/RemoveOutlined";
 import Add from "@material-ui/icons/Add";
-import { addPrices, formatCurrency } from "../../utils";
 import { green, red } from "@material-ui/core/colors";
 import ListSubheader from "@material-ui/core/ListSubheader";
-import { Tooltip } from "@material-ui/core";
+import { debounce, Tooltip } from "@material-ui/core";
+import { formatCurrency } from "../../utils";
 
-import "./Cart.css";
+import "./CartItem.css";
+import { Warning } from "@material-ui/icons";
 
 const CartItem = (
-  props = { products, addToCart, removeFromCart, changeProductCountInCart }
+  props = {
+    product,
+    addToCart,
+    removeFromCart,
+    changeProductCountInCart,
+    min: 1,
+    max: 10,
+    isBlocked: false,
+  }
 ) => {
-  const [products, setProducts] = useState([]);
+  const [isErrorQuantityMessage, setIsErrorQuantityMessage] = useState(false);
 
-  useEffect(async () => {
-    let _products = props.products;
+  let hideErrorQuantityMessage = () => {
+    setIsErrorQuantityMessage(false);
+  };
 
-    setProducts(_products);
-  });
-
-  let getTotalPrice = (products) => {
-    let totalPrice = products.reduce((product1, product2) => {
-      return { price: addPrices(product1.price, product2.price) };
-    }).price;
-
-    return totalPrice;
+  let showErrorQuantityMessage = () => {
+    setIsErrorQuantityMessage(true);
   };
 
   return (
-    <div className="container">
-      <h3>Koszyk</h3>
-      {products.map((product) => (
-        <ListItem>
-          <ListItemText
-            primary={product.name}
-            secondary={formatCurrency(product.price)}
-          />
-            <ListSubheader edge="end">Obecnie masz w koszyku {product.count} sztuk produktu</ListSubheader>
+    <ListItem>
+      <ListItemText
+        primary={props.product.name}
+        secondary={formatCurrency(props.product.price)}
+      />
+      <ListSubheader edge="end">
+        Obecnie masz w koszyku {props.product.count} sztuk produktu
+      </ListSubheader>
 
-          <Tooltip title="Delete one">
-            <IconButton
-              onClick={() => props.changeProductCountInCart(product, -1)}
-            >
-              <RemoveOutlined style={{ color: red[500] }} />
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title="Add one">
-            <IconButton
-              onClick={() => props.changeProductCountInCart(product, +1)}
-            >
-              <Add style={{ color: green[500] }} />
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title="Remove from cart">
-            <IconButton
-              edge="end"
-              onClick={() => props.removeFromCart(product, +1)}
-            >
-              <DeleteOutlined />
-            </IconButton>
-          </Tooltip>
-        </ListItem>
-      ))}
-      {props.products.length > 0 && (
-        <ListItem>
-          <ListItemText
-            primary="Total:"
-            secondary={formatCurrency(getTotalPrice(props.products))}
-          />
-        </ListItem>
+      {isErrorQuantityMessage && (
+        <Tooltip title="Osiągnięto maksymalną liczbę produktów">
+          <Warning style={{ color: red[500] }} />
+        </Tooltip>
       )}
-    </div>
+
+      <Tooltip
+        title={props.isBlocked ? "Osiągnięto limit produktów" : "Usuń jeden"}
+      >
+        <div>
+          <IconButton
+            onClick={() => {
+              hideErrorQuantityMessage();
+              debounce(
+                props.changeProductCountInCart(
+                  props.product,
+                  -1,
+                  showErrorQuantityMessage
+                )
+              );
+            }}
+            disabled={props.isBlocked}
+          >
+            <RemoveOutlined style={{ color: red[500] }} />
+          </IconButton>
+        </div>
+      </Tooltip>
+
+      <Tooltip
+        title={props.isBlocked ? "Osiągnięto limit produktów" : "Dodaj jeden"}
+      >
+        <div>
+          <IconButton
+            onClick={() => {
+              hideErrorQuantityMessage();
+              debounce(
+                props.changeProductCountInCart(
+                  props.product,
+                  +1,
+                  showErrorQuantityMessage
+                )
+              );
+            }}
+            disabled={props.isBlocked}
+          >
+            <Add style={{ color: green[500] }} />
+          </IconButton>
+        </div>
+      </Tooltip>
+
+      <Tooltip title="Usuń z koszyka">
+        <IconButton
+          edge="end"
+          onClick={() => props.removeFromCart(props.product, +1)}
+        >
+          <DeleteOutlined />
+        </IconButton>
+      </Tooltip>
+    </ListItem>
   );
 };
 
-export { CartItem as Cart };
+export { CartItem };

@@ -1,26 +1,22 @@
 import React, { useEffect, useState } from "react";
-import List from "@material-ui/core/List";
 import ListItem from "@material-ui/core/ListItem";
-import ListItemIcon from "@material-ui/core/ListItemIcon";
-import ListItemSecondaryAction from "@material-ui/core/ListItemSecondaryAction";
 import ListItemText from "@material-ui/core/ListItemText";
 import Button from "@material-ui/core/Button";
-import IconButton from "@material-ui/core/IconButton";
-import DeleteOutlined from "@material-ui/icons/DeleteOutlined";
-import RemoveOutlined from "@material-ui/icons/RemoveOutlined";
-import Add from "@material-ui/icons/Add";
-import { addPrices, formatCurrency } from "../../utils";
-import { green, red } from "@material-ui/core/colors";
-import ListSubheader from "@material-ui/core/ListSubheader";
+import { formatCurrency } from "../../utils";
 import {
-  CircularProgress,
   Dialog,
+  DialogContent,
   DialogTitle,
   LinearProgress,
-  Tooltip,
+  Chip,
+  createMuiTheme,
+  ThemeProvider,
 } from "@material-ui/core";
+import { CartItem } from "../CartItem/CartItem";
 
 import "./Cart.css";
+import { ShoppingCart } from "@material-ui/icons";
+import { green } from "@material-ui/core/colors";
 
 const Cart = (
   props = { products, addToCart, removeFromCart, changeProductCountInCart }
@@ -34,9 +30,20 @@ const Cart = (
     setProducts(_products);
   });
 
+  const theme = createMuiTheme({
+    palette: {
+      primary: green,
+    },
+  });
+
   let getTotalPrice = (products) => {
     let totalPrice = products.reduce((product1, product2) => {
-      return { price: addPrices(product1.price, product2.price) };
+      return {
+        price:
+          parseFloat(product1.price) * product1.count +
+          parseFloat(product2.price) * product2.count,
+        count: 1,
+      };
     }).price;
 
     return totalPrice;
@@ -52,42 +59,17 @@ const Cart = (
 
   return (
     <div className="container">
-      <h3>Koszyk</h3>
+      <Chip label="Koszyk" icon={<ShoppingCart />} />
       {products.map((product) => (
-        <ListItem>
-          <ListItemText
-            primary={product.name}
-            secondary={formatCurrency(product.price)}
-          />
-          <ListSubheader edge="end">
-            Obecnie masz w koszyku {product.count} sztuk produktu
-          </ListSubheader>
-
-          <Tooltip title="Delete one">
-            <IconButton
-              onClick={() => props.changeProductCountInCart(product, -1)}
-            >
-              <RemoveOutlined style={{ color: red[500] }} />
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title="Add one">
-            <IconButton
-              onClick={() => props.changeProductCountInCart(product, +1)}
-            >
-              <Add style={{ color: green[500] }} />
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title="Remove from cart">
-            <IconButton
-              edge="end"
-              onClick={() => props.removeFromCart(product, +1)}
-            >
-              <DeleteOutlined />
-            </IconButton>
-          </Tooltip>
-        </ListItem>
+        <CartItem
+          product={product}
+          addToCart={props.addToCart}
+          removeFromCart={props.removeFromCart}
+          changeProductCountInCart={props.changeProductCountInCart}
+          min={product.min}
+          max={product.max}
+          isBlocked={product.isBlocked}
+        ></CartItem>
       ))}
       {props.products.length > 0 && (
         <ListItem>
@@ -99,13 +81,16 @@ const Cart = (
       )}
 
       {props.products.length > 0 && (
-        <Button variant="outlined" color="primary" onClick={() => buyItems()}>
-          Kup
-        </Button>
+        <ThemeProvider theme={theme}>
+          <Button color="primary" onClick={() => buyItems()}>Kup</Button>
+        </ThemeProvider>
       )}
 
       <Dialog open={isOpenAlertDialog} onClose={handleClose}>
-        <DialogTitle>Taking you to payment...</DialogTitle>
+        <DialogTitle>Przekierowywanie do płatności...</DialogTitle>
+        <DialogContent>
+          To może zająć chwilę (szczególnie, że to okno to tylko placeholder)...
+        </DialogContent>
         <LinearProgress />
       </Dialog>
     </div>
